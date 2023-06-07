@@ -64,6 +64,32 @@ const verifyJWT = (req, res, next) =>{
         const token = jwt.sign(body, process.env.Access_Token, {expiresIn : '1h'})
         res.send(token)
       })
+      app.get('/user/admin/:email', verifyJWT, async (req, res) =>{
+        const email = req.params.email;
+        const decoEmail = req.decoded.email;
+        
+        if(email !== decoEmail){
+          return ({admin: false})
+        }
+        const query = {email: email};
+        const user = await userCollection.findOne(query);
+        const result = {admin: user?.role === 'admin'}
+        res.send(result)
+        
+      })
+      app.get('/user/instructor/:email', verifyJWT,  async (req, res) =>{
+        const email = req.params.email;
+        const decoEmail = req.decoded.email;
+        
+        if(email !== decoEmail){
+          return ({admin: false})
+        }
+        const query = {email: email};
+        const user = await userCollection.findOne(query);
+        const result = {instructor: user?.role === 'instructor'}
+        res.send(result)
+        
+      })
       app.put('/users/:email', (req, res) =>{
           const data = req.body;
           const email = req.params.email;
