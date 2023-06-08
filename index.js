@@ -13,11 +13,11 @@ app.use(cors());
 app.use(express.json());
 
 const verifyJWT = (req, res, next) =>{
-    const authorizatin = req.headers.authorizatin;
-    if(!authorizatin){
+    const authorization = req.headers.authorization;
+    if(!authorization){
       return res.status(401).send({error: true, message: 'unauthorized access'})
     }
-    const token = authorizatin.split(' ')[1];
+    const token = authorization.split(' ')[1];
     jwt.verify(token, process.env.Access_Token,(err, decoded) =>{
       if(err){
         return res.status(403).send({error: true, message: 'unauthorized access'})
@@ -44,8 +44,8 @@ const verifyJWT = (req, res, next) =>{
       // await client.connect();
   
       const userCollection = client.db("Assignment-12").collection('users')
-      const assignmentCollection = client.db("Assignment-12").collection('assignment')
-      const resultCollection = client.db("Assignment-12").collection('result')
+      const classesCollection = client.db("Assignment-12").collection('classes')
+      const bookingsCollection = client.db("Assignment-12").collection('bookings')
       // Send a ping to confirm a successful connection
 
       const veryfyAdmin = async(req, res, next) =>{
@@ -64,7 +64,8 @@ const verifyJWT = (req, res, next) =>{
         const token = jwt.sign(body, process.env.Access_Token, {expiresIn : '1h'})
         res.send(token)
       })
-      app.get('/user/admin/:email', verifyJWT, async (req, res) =>{
+     
+      app.get('/user/admin/:email', verifyJWT,  async (req, res) =>{
         const email = req.params.email;
         const decoEmail = req.decoded.email;
         
@@ -75,14 +76,13 @@ const verifyJWT = (req, res, next) =>{
         const user = await userCollection.findOne(query);
         const result = {admin: user?.role === 'admin'}
         res.send(result)
-        
       })
       app.get('/user/instructor/:email', verifyJWT,  async (req, res) =>{
         const email = req.params.email;
         const decoEmail = req.decoded.email;
         
         if(email !== decoEmail){
-          return ({admin: false})
+          return ({instructor: false})
         }
         const query = {email: email};
         const user = await userCollection.findOne(query);
@@ -90,18 +90,105 @@ const verifyJWT = (req, res, next) =>{
         res.send(result)
         
       })
-      app.put('/users/:email', (req, res) =>{
-          const data = req.body;
-          const email = req.params.email;
-          const options = { upsert: true };
-          const query = {email: email};
-          const updateDoc = {
-            $set : data
-          }
-          const result = userCollection.updateOne(query, updateDoc, options)
-          res.send(result)
-          console.log(email)
+      app.get('/allUsers', verifyJWT, veryfyAdmin, async(req, res)=>{
+        const result = await userCollection.find().toArray();
+        res.send(result)
       })
+      app.put('/users/role/:id', verifyJWT, veryfyAdmin, async(req, res)=>{
+        const id = req.params.id;
+        const body = req.body;
+        const query = {_id: new ObjectId(id)}
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: body,
+        }
+        const result = await userCollection.updateOne(query, updateDoc, options)
+        res.send(result)
+      })
+      app.post('/user', async(req, res) =>{
+          const data = req.body;
+          const query = {email: data.email};
+          const user = await userCollection.findOne(query);
+          if(user){
+            return res.send({message: 'user already exist'})
+          }
+          const result = await userCollection.insertOne(data);
+          res.send(result)
+      })
+      app.get('/instructorClasses/:email', verifyJWT, async(req, res)=>{
+        const email = req.params.email;
+        const decoEmail = req.decoded.email;
+        if(email !== decoEmail){
+          return ({instructor: false})
+        }
+        const query = {instructorEmail: email}
+        const result = await classesCollection.find(query).toArray();
+        res.send(result)
+      })
+      app.get('/allClasses/:email', verifyJWT, veryfyAdmin, async(req, res)=>{
+        const email = req.params.email;
+        const decoEmail = req.decoded.email;
+        if(email !== decoEmail){
+          return ({admin: false})
+        }
+        const result = await classesCollection.find().toArray();
+        res.send(result)
+      })
+      app.get('/approvedClasses', async(req, res)=>{
+        const query = {status: 'approved'}
+        const result = await classesCollection.find(query).toArray();
+        res.send(result)
+      })
+      app.put('/approve/:id', verifyJWT, veryfyAdmin, async(req, res)=>{
+        const id = req.params.id;
+        const body = req.body;
+        const query = {_id: new ObjectId(id)}
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: body,
+        }
+        const result = await classesCollection.updateOne(query, updateDoc, options)
+        res.send(result)
+      })
+      app.put('/classUpdate/:id', verifyJWT, async(req, res)=>{
+        const id = req.params.id;
+        const body = req.body;
+        const query = {_id: new ObjectId(id)}
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: body,
+        }
+        const result = await classesCollection.updateOne(query, updateDoc, options)
+        res.send(result)
+      })
+      app.post('/bookings', verifyJWT, async(req, res)=>{
+        const body = req.body;
+        const result = await bookingsCollection.insertOne(body)
+        res.send(result)
+      })
+      app.get('/selected/:email', verifyJWT, async(req, res)=>{
+        const email = req.params.email;
+        const query = {email : email}
+        const result = await bookingsCollection.find(query).toArray();
+        res.send(result)
+      })
+      app.delete('/delete/:id', verifyJWT, async(req, res)=>{
+        const id = req.params.id;
+        const query = {_id : new ObjectId(id)}
+        const result = await bookingsCollection.deleteOne(query);
+        res.send(result)
+      })
+      app.post('/addClass/:email',verifyJWT, async(req, res) =>{
+        const email = req.params.email;
+        const decoEmail = req.decoded.email;
+        const body = req.body;
+        if(email !== decoEmail){
+          return ({instructor: false})
+        }
+        const result = await classesCollection.insertOne(body)
+        res.send(result)
+      })
+      
      
       await client.db("admin").command({ ping: 1 });
       console.log("Pinged your deployment. You successfully connected to MongoDB!");
