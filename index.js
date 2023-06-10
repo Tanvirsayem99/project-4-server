@@ -1,11 +1,26 @@
 const express = require('express');
 const cors = require('cors');
 const app = express()
+require('dotenv').config();
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 5000;
 const jwt = require('jsonwebtoken');
 
 
-require('dotenv').config();
+
+app.use(express.static("public"));
+app.use(express.json());
+
+
+
+
+app.use(cors())
+app.use(express.static("public"));
+app.use(express.json());
+
+
+
+
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 
@@ -46,6 +61,7 @@ const verifyJWT = (req, res, next) =>{
       const userCollection = client.db("Assignment-12").collection('users')
       const classesCollection = client.db("Assignment-12").collection('classes')
       const bookingsCollection = client.db("Assignment-12").collection('bookings')
+      const paymentCollection = client.db("Assignment-12").collection('payment')
       // Send a ping to confirm a successful connection
 
       const veryfyAdmin = async(req, res, next) =>{
@@ -161,6 +177,17 @@ const verifyJWT = (req, res, next) =>{
         const result = await classesCollection.updateOne(query, updateDoc, options)
         res.send(result)
       })
+      app.put('/seatsUpdate/:id', verifyJWT, async(req, res)=>{
+        const id = req.params.id;
+        const body = req.body;
+        const query = {_id: new ObjectId(id)}
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: body,
+        }
+        const result = await classesCollection.updateOne(query, updateDoc, options)
+        res.send(result)
+      })
       app.post('/bookings', verifyJWT, async(req, res)=>{
         const body = req.body;
         const result = await bookingsCollection.insertOne(body)
@@ -170,6 +197,11 @@ const verifyJWT = (req, res, next) =>{
         const email = req.params.email;
         const query = {email : email}
         const result = await bookingsCollection.find(query).toArray();
+        res.send(result)
+      })
+      app.get('/Allinstructors',  async(req, res)=>{
+        const query = {role : 'instructor'}
+        const result = await userCollection.find(query).toArray();
         res.send(result)
       })
       app.delete('/delete/:id', verifyJWT, async(req, res)=>{
@@ -187,6 +219,49 @@ const verifyJWT = (req, res, next) =>{
         }
         const result = await classesCollection.insertOne(body)
         res.send(result)
+      })
+      app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+        const { price } = req.body;
+        const amount = parseInt(price * 100);
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: 'usd',
+          payment_method_types: ['card']
+        });
+  
+        res.send({
+          clientSecret: paymentIntent.client_secret
+        })
+      })
+      app.get('/enrolledItem/:email', verifyJWT, async(req, res)=>{
+        const email = req.params.email;
+        const query = {email: email}
+        const result = await paymentCollection.find(query).toArray();
+        res.send(result);
+      })
+      app.post('/payment', verifyJWT, async(req, res)=>{
+        const body = req.body;
+        const result = await paymentCollection.insertOne(body)
+        res.send(result);
+      })
+      app.get('/history/:email', async(req, res)=>{
+        const email = req.params.email
+        const query = {email: email}
+        const options = {
+          sort: { date: -1 },
+          
+        };
+        const result = await paymentCollection.find(query, options).toArray();
+        res.send(result);
+      })
+      app.get('/popular', async(req, res)=>{
+        const query = {status: 'approved'}
+        const options = {
+          sort: { 
+            student: -1 },
+        };
+        const result = await classesCollection.find(query, options).toArray();
+        res.send(result);
       })
       
      
