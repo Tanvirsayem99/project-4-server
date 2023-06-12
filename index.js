@@ -62,6 +62,7 @@ const verifyJWT = (req, res, next) =>{
       const classesCollection = client.db("Assignment-12").collection('classes')
       const bookingsCollection = client.db("Assignment-12").collection('bookings')
       const paymentCollection = client.db("Assignment-12").collection('payment')
+      const instructorCollection = client.db("Assignment-12").collection('instructors')
       // Send a ping to confirm a successful connection
 
       const veryfyAdmin = async(req, res, next) =>{
@@ -256,14 +257,30 @@ const verifyJWT = (req, res, next) =>{
       })
       app.get('/popular', async(req, res)=>{
         const query = {status: 'approved'}
-        const options = {
-          sort: { 
-            student: -1 },
-        };
-        const result = await classesCollection.find(query, options).toArray();
+        const result = await classesCollection.find(query).limit(6).sort({student: -1}).toArray();
         res.send(result);
       })
-      
+      app.put('/instructors/:email', verifyJWT, async(req, res)=>{
+        const body = req.body;
+        const email = req.params.email;
+        const query = {email: email}
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: body,
+        }
+        const result = await instructorCollection.updateOne(query, updateDoc, options)
+        res.send(result);
+      }) 
+      app.get('/instructorsData/:email', async(req, res)=>{
+        const email = req.params.email;
+        const query = {email: email}
+        const result = await instructorCollection.findOne(query);
+        res.send(result);
+      })
+      app.get('/popularInstructor', async(req, res)=>{
+        const result = await instructorCollection.find().sort({student: -1}).limit(6).toArray();
+        res.send(result);
+      })
      
       await client.db("admin").command({ ping: 1 });
       console.log("Pinged your deployment. You successfully connected to MongoDB!");
