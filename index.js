@@ -97,7 +97,6 @@ const verifyJWT = (req, res, next) =>{
       app.get('/user/instructor/:email', verifyJWT,  async (req, res) =>{
         const email = req.params.email;
         const decoEmail = req.decoded.email;
-        
         if(email !== decoEmail){
           return ({instructor: false})
         }
