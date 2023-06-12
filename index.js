@@ -75,7 +75,7 @@ const verifyJWT = (req, res, next) =>{
         next()
       }
   
-  
+  // jwt verification 
       app.post('/jwt', (req, res)=>{
         const body = req.body;
         const token = jwt.sign(body, process.env.Access_Token, {expiresIn : '1h'})
