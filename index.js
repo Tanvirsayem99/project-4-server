@@ -271,13 +271,14 @@ const verifyJWT = (req, res, next) =>{
         const result = await instructorCollection.updateOne(query, updateDoc, options)
         res.send(result);
       }) 
+      
       app.get('/instructorsData/:email', async(req, res)=>{
         const email = req.params.email;
         const query = {email: email}
         const result = await instructorCollection.findOne(query);
         res.send(result);
       })
-      
+
       app.get('/popularInstructor', async(req, res)=>{
         const result = await instructorCollection.find().sort({student: -1}).limit(6).toArray();
         res.send(result);
