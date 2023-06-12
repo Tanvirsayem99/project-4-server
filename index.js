@@ -199,6 +199,7 @@ const verifyJWT = (req, res, next) =>{
         const result = await bookingsCollection.find(query).toArray();
         res.send(result)
       })
+      
       app.get('/Allinstructors',  async(req, res)=>{
         const query = {role : 'instructor'}
         const result = await userCollection.find(query).toArray();
