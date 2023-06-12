@@ -199,7 +199,7 @@ const verifyJWT = (req, res, next) =>{
         const result = await bookingsCollection.find(query).toArray();
         res.send(result)
       })
-      
+
       app.get('/Allinstructors',  async(req, res)=>{
         const query = {role : 'instructor'}
         const result = await userCollection.find(query).toArray();
@@ -277,10 +277,12 @@ const verifyJWT = (req, res, next) =>{
         const result = await instructorCollection.findOne(query);
         res.send(result);
       })
+      
       app.get('/popularInstructor', async(req, res)=>{
         const result = await instructorCollection.find().sort({student: -1}).limit(6).toArray();
         res.send(result);
       })
+
      
       await client.db("admin").command({ ping: 1 });
       console.log("Pinged your deployment. You successfully connected to MongoDB!");
